@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <meta charset='utf-8' />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1" />
+    <meta name="description" content="Directory Server : Erlang LDAP Server" />
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>Directory Server</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/synrc/directory-server">View on GitHub</a>
+
+          <h1 id="project_title">Directory Server</h1>
+          <h2 id="project_tagline">Erlang LDAP Server</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/synrc/directory-server/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/synrc/directory-server/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a name="readme" class="anchor" href="#readme"><span class="octicon octicon-link"></span></a>README</h1>
+
+<p>Erland Directory Server is an <a href="http://en.wikipedia.org/wiki/LDAP">LDAP</a> server with <a href="http://www.mongodb.org/">MongoDB</a> backend.</p>
+
+<h1>
+<a name="install" class="anchor" href="#install"><span class="octicon octicon-link"></span></a>INSTALL</h1>
+
+<p>Compile eMongo driver first:</p>
+
+<pre><code>    $ git clone git://github.com/master/emongo.git emongo
+    $ cd emongo
+    $ make
+    $ cd ..
+</code></pre>
+
+<p>Download and compile EDS:</p>
+
+<pre><code>    $ git clone git://github.com/master/eds.git eds
+    $ cd eds
+    $ make
+</code></pre>
+
+<p>Populate database with sample LDIF:</p>
+
+<pre><code>    $ priv/populate.py t/000-init.ldif
+
+    dc=synrc,dc=com
+    uid=admin,dc=synrc,dc=com
+    ou=People,dc=synrc,dc=com
+    cn=Oleg Smirnov,ou=People,dc=synrc,dc=com
+    cn=Maxim Sokhatsky,ou=People,dc=synrc,dc=com
+</code></pre>
+
+<h1>
+<a name="usage" class="anchor" href="#usage"><span class="octicon octicon-link"></span></a>USAGE</h1>
+
+<pre><code>    $ ./eds.sh
+</code></pre>
+
+<p>LDAP port is 1389 for testing purposes. Anonymous bind is not supported (yet).</p>
+
+<h2>
+<a name="search" class="anchor" href="#search"><span class="octicon octicon-link"></span></a>Search</h2>
+
+<pre><code>    $ ldapsearch -b "dc=synrc,dc=com" 'objectClass=*' \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+</code></pre>
+
+<p>Filters:</p>
+
+<pre><code>    $ ldapsearch -b "dc=synrc,dc=com" '(&amp;(uid=*)(cn=Ma*))' \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+</code></pre>
+
+<p>Attributes selection:</p>
+
+<pre><code>    $ ldapsearch -b "dc=synrc,dc=com" 'sn=*' cn sn \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+</code></pre>
+
+<p>Size limit on query result:</p>
+
+<pre><code>    $ ldapsearch -b "dc=synrc,dc=com" 'sn=*' cn sn -z 1 \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+</code></pre>
+
+<h2>
+<a name="add" class="anchor" href="#add"><span class="octicon octicon-link"></span></a>Add</h2>
+
+<p>Adding entries:</p>
+
+<pre><code>    $ ldapmodify -f t/010-add.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret  
+
+    adding new entry "cn=alice,ou=People,dc=synrc,dc=com"
+
+    adding new entry "cn=bob,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Adding duplicate entries:</p>
+
+<pre><code>    $ ldapmodify -f t/011-add-exists.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    adding new entry "cn=alice,ou=People,dc=synrc,dc=com"
+    ldap_add: Already exists (68)
+</code></pre>
+
+<h2>
+<a name="modify" class="anchor" href="#modify"><span class="octicon octicon-link"></span></a>Modify</h2>
+
+<p>Replacing value of an attribute:</p>
+
+<pre><code>    $ ldapmodify -f t/020-modify-replace.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying entry "cn=alice,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Adding new attribute:</p>
+
+<pre><code>    $ ldapmodify -f t/021-modify-add.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying entry "cn=alice,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Deleting an attribute:</p>
+
+<pre><code>    $ ldapmodify -f t/022-modify-del.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying entry "cn=bob,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Changing many attributes at once:</p>
+
+<pre><code>    $ ldapmodify -f t/023-modify-multi.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying entry "cn=bob,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Changing nonexistent object:</p>
+
+<pre><code>    $ ldapmodify -f t/024-modify-noobj.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying entry "cn=eve,ou=People,dc=synrc,dc=com"
+    ldap_modify: No such object (32)
+</code></pre>
+
+<h2>
+<a name="modify-dn" class="anchor" href="#modify-dn"><span class="octicon octicon-link"></span></a>Modify DN</h2>
+
+<pre><code>    $ ldapmodify -f t/025-modify-dn.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    modifying rdn of entry "cn=alice,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<h2>
+<a name="delete" class="anchor" href="#delete"><span class="octicon octicon-link"></span></a>Delete</h2>
+
+<p>Deleting entries:</p>
+
+<pre><code>    $ ldapmodify -f t/030-delete.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    deleting entry "uid=alice,ou=People,dc=synrc,dc=com"
+
+    deleting entry "cn=bob,ou=People,dc=synrc,dc=com"
+</code></pre>
+
+<p>Deleting nonexistent entries:</p>
+
+<pre><code>    $ ldapmodify -f t/031-delete-noobj.ldif \
+                 -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+
+    deleting entry "cn=alice,ou=People,dc=synrc,dc=com"
+    ldap_delete: No such object (32)
+</code></pre>
+
+<h2>
+<a name="compare" class="anchor" href="#compare"><span class="octicon octicon-link"></span></a>Compare</h2>
+
+<p>Evaluating an expression:</p>
+
+<pre><code>    $ ldapcompare "uid=admin,dc=synrc,dc=com" uid:admin \
+                  -h localhost -p 1389 -D "uid=admin,dc=synrc,dc=com" -w secret
+    TRUE
+</code></pre>
+      </section>
+    </div>
+
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">Directory Server maintained by <a href="https://github.com/synrc">synrc</a></p>
+        <p>Published with <a href="http://pages.github.com">GitHub Pages</a></p>
+      </footer>
+    </div>
+
+    
+
+  </body>
+</html>
